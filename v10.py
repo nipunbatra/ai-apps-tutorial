@@ -1,135 +1,179 @@
 """Version 10: a small final app that combines the main ideas."""
 
-from collections import Counter
 from io import StringIO
 
 import pandas as pd
 import streamlit as st
+from sklearn.datasets import load_iris
+from sklearn.linear_model import LogisticRegression
 
 
 @st.cache_data
-def get_demo_data(multiplier: int) -> pd.DataFrame:
+def get_demo_csv() -> str:
     df = pd.DataFrame(
-        {
-            "day": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-            "hours": [1, 2, 2, 3, 2, 4, 3],
-        }
+        [
+            {
+                "sepal length (cm)": 5.1,
+                "sepal width (cm)": 3.5,
+                "petal length (cm)": 1.4,
+                "petal width (cm)": 0.2,
+            },
+            {
+                "sepal length (cm)": 6.4,
+                "sepal width (cm)": 3.2,
+                "petal length (cm)": 4.5,
+                "petal width (cm)": 1.5,
+            },
+            {
+                "sepal length (cm)": 6.9,
+                "sepal width (cm)": 3.1,
+                "petal length (cm)": 5.4,
+                "petal width (cm)": 2.1,
+            },
+        ]
     )
-    df["hours"] = df["hours"] * multiplier
-    return df
+    return df.to_csv(index=False)
 
 
-def clean_words(text: str) -> list[str]:
-    words = []
-    for raw_word in text.lower().split():
-        word = raw_word.strip(".,!?;:-()[]{}\"'")
-        if word:
-            words.append(word)
-    return words
+@st.cache_resource
+def load_model() -> tuple[LogisticRegression, pd.DataFrame, list[str]]:
+    iris = load_iris(as_frame=True)
+    X = iris.data
+    y = iris.target
+
+    model = LogisticRegression(max_iter=300)
+    model.fit(X, y)
+
+    df = X.copy()
+    df["species"] = [iris.target_names[index] for index in y]
+    return model, df, list(iris.target_names)
 
 
 def run() -> None:
-    st.set_page_config(page_title="AI Lab Starter App", layout="wide")
-
-    if "ideas" not in st.session_state:
-        st.session_state.ideas = []
+    st.set_page_config(page_title="Iris Classifier App", layout="wide")
 
     st.sidebar.header("App controls")
     student_name = st.sidebar.text_input("Student name", placeholder="Enter your name")
-    topic = st.sidebar.selectbox("Focus topic", ["Python", "Git", "Pandas", "Streamlit"])
-    multiplier = st.sidebar.slider("Study intensity", 1, 4, 1)
-    use_demo_data = st.sidebar.checkbox("Use demo study data", value=True)
+    show_probabilities = st.sidebar.checkbox("Show prediction probabilities", value=True)
+    show_formula = st.sidebar.checkbox("Show a simple model formula", value=False)
 
-    st.title("AI Lab Starter App")
-    st.write("A small app that combines widgets, data, charts, state, and text analysis.")
+    model, iris_df, species_names = load_model()
+    sample_csv = get_demo_csv()
+
+    st.title("Iris Classifier App")
+    st.write(
+        "A small final app that combines widgets, charts, markdown, LaTeX, "
+        "file upload, and a simple sklearn model."
+    )
 
     if student_name.strip():
-        st.success(f"Hello, {student_name}. Your focus topic is {topic}.")
+        st.success(f"Hello, {student_name}. Try a few flower measurements below.")
 
-    planner_tab, ideas_tab, export_tab = st.tabs(["Study planner", "Idea analyzer", "Export"])
+    explore_tab, predict_tab, upload_tab = st.tabs(
+        ["Explore the data", "Single prediction", "Batch prediction"]
+    )
 
-    with planner_tab:
-        sample_df = get_demo_data(multiplier)
-        sample_csv = sample_df.to_csv(index=False)
+    with explore_tab:
+        st.markdown("### Iris dataset")
+        st.dataframe(iris_df.head(10), use_container_width=True, hide_index=True)
 
+        chart_df = (
+            iris_df.groupby("species")[["petal length (cm)", "petal width (cm)"]]
+            .mean()
+            .reset_index()
+        )
+        st.bar_chart(chart_df.set_index("species"))
+
+        st.markdown(
+            """
+            ### Why this app is useful
+            - it uses a real sklearn model
+            - it stays small enough to deploy easily
+            - it shows how Python becomes a useful web interface
+            """
+        )
+
+    with predict_tab:
+        st.markdown("### Enter flower measurements")
+        col1, col2 = st.columns(2)
+        sepal_length = col1.slider("Sepal length (cm)", 4.0, 8.0, 5.8, 0.1)
+        sepal_width = col2.slider("Sepal width (cm)", 2.0, 4.5, 3.0, 0.1)
+        petal_length = col1.slider("Petal length (cm)", 1.0, 7.0, 4.3, 0.1)
+        petal_width = col2.slider("Petal width (cm)", 0.1, 2.5, 1.3, 0.1)
+
+        input_df = pd.DataFrame(
+            [
+                {
+                    "sepal length (cm)": sepal_length,
+                    "sepal width (cm)": sepal_width,
+                    "petal length (cm)": petal_length,
+                    "petal width (cm)": petal_width,
+                }
+            ]
+        )
+
+        prediction = int(model.predict(input_df)[0])
+        st.success(f"Predicted flower: **{species_names[prediction]}**")
+
+        if show_probabilities:
+            proba_df = pd.DataFrame(
+                {
+                    "species": species_names,
+                    "probability": model.predict_proba(input_df)[0],
+                }
+            )
+            st.dataframe(proba_df, use_container_width=True, hide_index=True)
+
+        if show_formula:
+            st.markdown("### A simple linear model view")
+            st.latex(r"z = w_1x_1 + w_2x_2 + w_3x_3 + w_4x_4 + b")
+            st.markdown("The classifier uses the four measurements to compute class scores.")
+
+    with upload_tab:
+        st.markdown("### Predict from a CSV file")
         st.download_button(
             "Download sample CSV",
             data=sample_csv,
-            file_name="study_log.csv",
+            file_name="iris_samples.csv",
             mime="text/csv",
         )
 
-        uploaded_file = st.file_uploader("Upload your own study log", type="csv")
+        uploaded_file = st.file_uploader("Upload your own CSV", type="csv")
 
-        if uploaded_file is not None and not use_demo_data:
+        if uploaded_file is not None:
             df = pd.read_csv(uploaded_file)
-            source_label = "uploaded CSV"
+            st.success("Using uploaded CSV.")
         else:
             df = pd.read_csv(StringIO(sample_csv))
-            source_label = "demo data"
+            st.info("No file uploaded. Showing sample CSV instead.")
 
-        required_columns = {"day", "hours"}
-        if not required_columns.issubset(df.columns):
-            st.error("The study log must contain the columns: day, hours")
+        required_columns = [
+            "sepal length (cm)",
+            "sepal width (cm)",
+            "petal length (cm)",
+            "petal width (cm)",
+        ]
+        if not set(required_columns).issubset(df.columns):
+            st.error("CSV must contain the four iris measurement columns.")
             return
 
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Rows", len(df))
-        col2.metric("Total hours", float(df["hours"].sum()))
-        col3.metric("Data source", source_label)
-
+        df = df[required_columns].copy()
+        predictions = model.predict(df)
+        df["predicted_species"] = [species_names[index] for index in predictions]
         st.dataframe(df, use_container_width=True, hide_index=True)
-        st.bar_chart(df.set_index("day"))
 
-    with ideas_tab:
-        idea = st.text_area(
-            "Describe a simple AI app idea",
-            placeholder="Example: A tool that shows student attendance and marks in one dashboard.",
-            height=180,
-        )
-
-        if st.button("Save this idea"):
-            if idea.strip():
-                st.session_state.ideas.append(idea.strip())
-                st.success("Idea saved.")
-            else:
-                st.warning("Type an idea before saving.")
-
-        if idea.strip():
-            words = clean_words(idea)
-            top_words = Counter(words).most_common(5)
-
-            col1, col2, col3 = st.columns(3)
-            col1.metric("Characters", len(idea))
-            col2.metric("Words", len(words))
-            col3.metric("Top unique words", len(set(words)))
-
-            if top_words:
-                top_words_df = pd.DataFrame(top_words, columns=["word", "count"])
-                st.dataframe(top_words_df, use_container_width=True, hide_index=True)
-
-        st.subheader("Saved ideas in this session")
-        if st.session_state.ideas:
-            for index, saved_idea in enumerate(st.session_state.ideas, start=1):
-                st.write(f"{index}. {saved_idea}")
-        else:
-            st.write("No saved ideas yet.")
-
-    with export_tab:
-        summary_lines = [
-            "AI Lab Starter App summary",
-            f"Student name: {student_name or 'not provided'}",
-            f"Focus topic: {topic}",
-            f"Study intensity: {multiplier}",
-            f"Saved ideas: {len(st.session_state.ideas)}",
-        ]
+        st.markdown("### Export a short summary")
+        summary_lines = [f"Rows predicted: {len(df)}"]
+        if student_name.strip():
+            summary_lines.append(f"Run by: {student_name}")
+        summary_lines.append(f"Classes used: {', '.join(species_names)}")
         summary_text = "\n".join(summary_lines)
 
         st.code(summary_text)
         st.download_button(
             "Download summary",
             data=summary_text,
-            file_name="app_summary.txt",
+            file_name="prediction_summary.txt",
             mime="text/plain",
         )
 

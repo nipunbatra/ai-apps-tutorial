@@ -25,9 +25,9 @@ The final deployable app is `app.py`, which imports `v10.py`.
 | `v5.py` | dataframe and charts |
 | `v6.py` | file upload and sample CSV download |
 | `v7.py` | text area and simple text analysis |
-| `v8.py` | `st.session_state` |
-| `v9.py` | `st.tabs` and `@st.cache_data` |
-| `v10.py` | one small polished app that combines the ideas |
+| `v8.py` | checkbox, markdown, and LaTeX |
+| `v9.py` | a simple sklearn classifier with cached loading |
+| `v10.py` | a final sklearn app with charts, tabs, upload, markdown, and export |
 
 ## Suggested lab flow
 
@@ -35,8 +35,9 @@ The final deployable app is `app.py`, which imports `v10.py`.
 2. Move to `v2.py` to explain reruns and buttons.
 3. Use `v3.py` and `v4.py` to cover widgets and layout.
 4. Use `v5.py` and `v6.py` for data display and CSV upload.
-5. Use `v7.py` and `v8.py` for text apps and state.
-6. End with `v9.py` and `v10.py`, then deploy `app.py`.
+5. Use `v7.py` and `v8.py` for text display, markdown, and math.
+6. Use `v9.py` to show how sklearn fits into a Streamlit app.
+7. End with `v10.py`, then deploy `app.py`.
 
 ## Local setup
 
@@ -52,11 +53,10 @@ Run Streamlit from the repository root so local paths behave the same way as dep
 ## Deployment
 
 - Streamlit Community Cloud: see `deploy/streamlit-community-cloud.md`
-- Hugging Face Streamlit Space config example: see `deploy/hf-streamlit-space-legacy/`
-- Hugging Face custom Docker Space: see `deploy/hf-docker-space/`
+- Hugging Face Spaces: use the separate `hf-spaces-deploy-tutorial` repo
 
 ## Notes for teaching
 
 - The apps stay self-contained so students can open one file and understand it.
-- The examples are student-friendly rather than ML-heavy.
-- The Hugging Face built-in Streamlit SDK is included as a teaching example, but Hugging Face now recommends Docker for Streamlit deployments.
+- The examples are student-friendly and now include a minimal sklearn model.
+- Markdown, LaTeX, checkbox widgets, charts, and CSV upload are all covered before deployment.

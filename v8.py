@@ -1,4 +1,4 @@
-"""Version 8: remember values with st.session_state."""
+"""Version 8: use markdown, LaTeX, and a checkbox."""
 
 import streamlit as st
 
@@ -6,32 +6,30 @@ import streamlit as st
 def run() -> None:
     st.set_page_config(page_title="AI Study Buddy v8", layout="wide")
     st.title("AI Study Buddy")
-    st.write("This version stores a list in session state.")
+    st.write("This version shows how Streamlit can display styled text and math.")
 
-    if "ideas" not in st.session_state:
-        st.session_state.ideas = []
+    st.markdown(
+        """
+        ### Why this is useful
+        - `st.markdown()` is good for formatted notes
+        - `st.latex()` is good for equations
+        - `st.checkbox()` lets users show or hide details
+        """
+    )
 
-    new_idea = st.text_input("Add a lab or app idea")
+    show_formula = st.checkbox("Show the formula details", value=True)
 
-    col1, col2 = st.columns(2)
+    st.subheader("A simple line")
+    a = st.slider("Choose slope a", 0.0, 5.0, 2.0, 0.5)
+    b = st.slider("Choose intercept b", 0.0, 10.0, 1.0, 0.5)
+    x = st.slider("Choose x", 0.0, 10.0, 3.0, 0.5)
+    y = a * x + b
 
-    if col1.button("Save idea"):
-        if new_idea.strip():
-            st.session_state.ideas.append(new_idea.strip())
-            st.success("Idea saved in session state.")
-        else:
-            st.warning("Type something before saving.")
+    st.metric("Computed value of y", f"{y:.2f}")
 
-    if col2.button("Clear ideas"):
-        st.session_state.ideas = []
-        st.info("Session ideas cleared.")
-
-    st.subheader("Saved ideas")
-    if st.session_state.ideas:
-        for index, idea in enumerate(st.session_state.ideas, start=1):
-            st.write(f"{index}. {idea}")
-    else:
-        st.write("No ideas saved yet.")
+    if show_formula:
+        st.latex(fr"y = {a:.1f}x + {b:.1f}")
+        st.markdown(f"When `x = {x:.1f}`, the output is **{y:.2f}**.")
 
 
 if __name__ == "__main__":
